@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CalendarClock, Phone, User, Wrench } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { StatusBadge } from "@/components/StatusBadge";
-import { useHospital } from "@/lib/hospital/store";
-import { daysUntil, pretty, todayISO } from "@/lib/hospital/dates";
-import type { Room } from "@/lib/hospital/types";
+import { AlertTriangle, CalendarClock, Phone, User, Wrench, Trash } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog";
+import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
+import { Label } from "@/frontend/components/ui/label";
+import { Separator } from "@/frontend/components/ui/separator";
+import { StatusBadge } from "@/frontend/components/StatusBadge";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { daysUntil, pretty, todayISO } from "@/shared/dates";
+import type { Room } from "@/shared/types";
 
 export function RoomDetailsDialog({
   room,
@@ -28,7 +28,8 @@ export function RoomDetailsDialog({
     patientById,
     dischargePatient,
     toggleMaintenance,
-    role,
+    currentUser,
+    removeRoom,
   } = useHospital();
   const [dischargeDate, setDischargeDate] = useState(todayISO());
 
@@ -197,8 +198,26 @@ export function RoomDetailsDialog({
           </div>
         ) : null}
 
-        {role === "admin" ? (
-          <div className="flex justify-end">
+        {currentUser?.role === "admin" ? (
+          <div className="flex justify-between mt-4 gap-2">
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (confirm(`Are you sure you want to permanently delete Room ${room.number}?`)) {
+                  const res = await removeRoom(room.id);
+                  if (res.ok) {
+                    toast.success(res.message);
+                    onOpenChange(false);
+                  } else {
+                    toast.error(res.message);
+                  }
+                }
+              }}
+            >
+              <Trash className="mr-2 size-4" />
+              Delete Room
+            </Button>
+
             <Button
               variant="outline"
               onClick={() => {

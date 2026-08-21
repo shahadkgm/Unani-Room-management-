@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
-import { StatusLegend } from "@/components/StatusBadge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useHospital } from "@/lib/hospital/store";
-import { iso, pretty, today, todayISO } from "@/lib/hospital/dates";
+import { AppShell } from "@/frontend/components/AppShell";
+import { Button } from "@/frontend/components/ui/button";
+import { StatusLegend } from "@/frontend/components/StatusBadge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/frontend/components/ui/tooltip";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { iso, pretty, today, todayISO } from "@/shared/dates";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({

@@ -1,5 +1,5 @@
-import type { Booking, HospitalState, Patient, Room, RoomType } from "./types";
-import { shift } from "./dates";
+import type { Booking, HospitalState, Patient, Room, RoomType } from "@/shared/types";
+import { shift } from "@/shared/dates";
 
 const wardConfig: Array<{
   floor: number;

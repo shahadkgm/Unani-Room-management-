@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
-import { RoomBoard } from "@/components/RoomBoard";
-import { useStats } from "@/lib/hospital/store";
+import { AppShell } from "@/frontend/components/AppShell";
+import { RoomBoard } from "@/frontend/components/RoomBoard";
+import { useStats } from "@/frontend/store/hospitalStore";
 
 export const Route = createFileRoute("/rooms")({
   head: () => ({

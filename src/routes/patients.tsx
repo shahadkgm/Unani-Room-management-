@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AppShell } from "@/frontend/components/AppShell";
+import { Input } from "@/frontend/components/ui/input";
+import { Button } from "@/frontend/components/ui/button";
+import { Separator } from "@/frontend/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -14,11 +14,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
-import { useHospital } from "@/lib/hospital/store";
-import { daysUntil, pretty, todayISO } from "@/lib/hospital/dates";
-import type { Patient } from "@/lib/hospital/types";
+} from "@/frontend/components/ui/table";
+import { StatusBadge } from "@/frontend/components/StatusBadge";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { daysUntil, pretty, todayISO } from "@/shared/dates";
+import type { Patient } from "@/shared/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/patients")({

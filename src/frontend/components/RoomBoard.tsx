@@ -1,25 +1,29 @@
 import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
+import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { RoomTile } from "@/components/RoomTile";
-import { StatusLegend } from "@/components/StatusBadge";
-import { AdmissionDialog } from "@/components/AdmissionDialog";
-import { RoomDetailsDialog } from "@/components/RoomDetailsDialog";
-import { useHospital } from "@/lib/hospital/store";
-import type { Room } from "@/lib/hospital/types";
+} from "@/frontend/components/ui/select";
+import { RoomTile } from "@/frontend/components/RoomTile";
+import { StatusLegend } from "@/frontend/components/StatusBadge";
+import { AdmissionDialog } from "@/frontend/components/AdmissionDialog";
+import { RoomDetailsDialog } from "@/frontend/components/RoomDetailsDialog";
+import { AddRoomDialog } from "@/frontend/components/AddRoomDialog";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import type { Room } from "@/shared/types";
 
 export function RoomBoard() {
-  const { rooms, roomStatus } = useHospital();
+  const { rooms, roomStatus, currentUser } = useHospital();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [admitRoom, setAdmitRoom] = useState<Room | null>(null);
   const [detailsRoom, setDetailsRoom] = useState<Room | null>(null);
+  const [addRoomOpen, setAddRoomOpen] = useState(false);
 
   const wards = useMemo(() => {
     const filtered = rooms.filter((room) => {
@@ -48,7 +52,7 @@ export function RoomBoard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -67,6 +71,11 @@ export function RoomBoard() {
               <SelectItem value="maintenance">Maintenance</SelectItem>
             </SelectContent>
           </Select>
+          {currentUser?.role === "admin" && (
+            <Button onClick={() => setAddRoomOpen(true)} className="gap-1.5" size="sm">
+              <Plus className="size-4" /> Add Room
+            </Button>
+          )}
         </div>
         <StatusLegend />
       </div>
@@ -102,6 +111,10 @@ export function RoomBoard() {
         room={detailsRoom}
         open={!!detailsRoom}
         onOpenChange={(o) => !o && setDetailsRoom(null)}
+      />
+      <AddRoomDialog
+        open={addRoomOpen}
+        onOpenChange={setAddRoomOpen}
       />
     </div>
   );

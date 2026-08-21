@@ -1,8 +1,8 @@
 import { BedDouble, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useHospital, type RoomComputedStatus } from "@/lib/hospital/store";
-import { daysUntil } from "@/lib/hospital/dates";
-import type { Room } from "@/lib/hospital/types";
+import { useHospital, type RoomComputedStatus } from "@/frontend/store/hospitalStore";
+import { daysUntil } from "@/shared/dates";
+import type { Room } from "@/shared/types";
 
 const tileStyles: Record<RoomComputedStatus, string> = {
   available: "border-available/40 bg-available-soft hover:border-available hover:shadow-lift",

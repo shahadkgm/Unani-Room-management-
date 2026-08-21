@@ -1,5 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Activity,
   BedDouble,
@@ -9,25 +9,33 @@ import {
   Users,
   ShieldCheck,
   Stethoscope,
+  LogOut,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { useHospital } from "@/lib/hospital/store";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/frontend/components/ui/sheet";
+import { Button } from "@/frontend/components/ui/button";
+import { useHospital } from "@/frontend/store/hospitalStore";
 import { cn } from "@/lib/utils";
-import { pretty, todayISO } from "@/lib/hospital/dates";
-
-const nav = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/rooms", label: "Rooms", icon: BedDouble },
-  { to: "/calendar", label: "Room Calendar", icon: CalendarRange },
-  { to: "/patients", label: "Patients", icon: Users },
-] as const;
+import { pretty, todayISO } from "@/shared/dates";
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const location = useLocation();
+  const pathname = location.pathname;
+  const { currentUser } = useHospital();
+
+  const links = [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/rooms", label: "Rooms", icon: BedDouble },
+    { to: "/calendar", label: "Room Calendar", icon: CalendarRange },
+    { to: "/patients", label: "Patients", icon: Users },
+  ];
+
+  if (currentUser?.role === "admin") {
+    links.push({ to: "/admin/users", label: "Admin Portal", icon: ShieldCheck });
+  }
+
   return (
     <nav className="flex flex-col gap-1">
-      {nav.map(({ to, label, icon: Icon }) => {
+      {links.map(({ to, label, icon: Icon }) => {
         const active = pathname === to;
         return (
           <Link
@@ -66,33 +74,44 @@ function Brand() {
   );
 }
 
-function RoleSwitch() {
-  const { role, setRole } = useHospital();
+function UserProfile() {
+  const { currentUser, logout } = useHospital();
+  const navigate = useNavigate();
+
+  if (!currentUser) return null;
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
+
   return (
-    <div className="rounded-xl bg-sidebar-accent/60 p-3">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-        Signed in as
+    <div className="rounded-xl bg-sidebar-accent/60 p-4 border border-sidebar-border/30">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/50 mb-2">
+        Signed In As
       </p>
-      <div className="grid grid-cols-2 gap-1 rounded-lg bg-sidebar/60 p-1">
-        {(["admin", "receptionist"] as const).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRole(r)}
-            className={cn(
-              "rounded-md px-2 py-1.5 text-xs font-semibold capitalize transition-colors",
-              role === r
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
-            )}
-          >
-            {r}
-          </button>
-        ))}
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-semibold text-sm">
+          {currentUser.username[0]?.toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-sidebar-foreground">
+            {currentUser.username}
+          </p>
+          <span className="inline-block rounded-full bg-sidebar-primary/20 px-2 py-0.5 text-[10px] font-bold capitalize text-sidebar-primary mt-0.5">
+            {currentUser.role}
+          </span>
+        </div>
       </div>
-      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-sidebar-foreground/60">
-        <ShieldCheck className="size-3.5" />
-        {role === "admin" ? "Full access incl. maintenance" : "Admissions & discharges"}
-      </p>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleLogout}
+        className="mt-3.5 w-full justify-start gap-2 h-9 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+      >
+        <LogOut className="size-4" />
+        Sign Out
+      </Button>
     </div>
   );
 }
@@ -109,7 +128,18 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const { role } = useHospital();
+  const { currentUser, hydrated } = useHospital();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (hydrated && !currentUser) {
+      navigate({ to: "/login" });
+    }
+  }, [currentUser, hydrated, navigate]);
+
+  if (!currentUser) {
+    return null; // Prevents layout flash before redirect
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -118,7 +148,7 @@ export function AppShell({
           <Brand />
           <NavLinks />
         </div>
-        <RoleSwitch />
+        <UserProfile />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -136,7 +166,7 @@ export function AppShell({
                 <div className="space-y-8">
                   <Brand />
                   <NavLinks onNavigate={() => setOpen(false)} />
-                  <RoleSwitch />
+                  <UserProfile />
                 </div>
               </SheetContent>
             </Sheet>
@@ -152,7 +182,7 @@ export function AppShell({
               {actions}
               <div className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground sm:flex">
                 <Activity className="size-4 text-primary" />
-                <span className="capitalize">{role}</span>
+                <span className="capitalize">{currentUser.role}</span>
                 <span className="text-border">|</span>
                 {pretty(todayISO())}
               </div>

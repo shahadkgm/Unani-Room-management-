@@ -9,12 +9,12 @@ import {
   LogOut,
   Wrench,
 } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { StatusBadge } from "@/components/StatusBadge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { useHospital, useStats } from "@/lib/hospital/store";
-import { daysUntil, pretty, todayISO } from "@/lib/hospital/dates";
+import { AppShell } from "@/frontend/components/AppShell";
+import { StatusBadge } from "@/frontend/components/StatusBadge";
+import { Progress } from "@/frontend/components/ui/progress";
+import { Button } from "@/frontend/components/ui/button";
+import { useHospital, useStats } from "@/frontend/store/hospitalStore";
+import { daysUntil, pretty, todayISO } from "@/shared/dates";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({

@@ -44,3 +44,12 @@ export interface HospitalState {
   patients: Patient[];
   bookings: Booking[];
 }
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: Role;
+  password?: string;
+}
+

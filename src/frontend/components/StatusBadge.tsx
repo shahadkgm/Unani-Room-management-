@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { statusLabel, type RoomComputedStatus } from "@/lib/hospital/store";
+import { statusLabel, type RoomComputedStatus } from "@/frontend/store/hospitalStore";
 
 const styles: Record<RoomComputedStatus, string> = {
   available: "bg-available-soft text-available border-available/30",

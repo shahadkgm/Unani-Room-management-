@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog";
+import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
+import { Label } from "@/frontend/components/ui/label";
+import { Textarea } from "@/frontend/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useHospital } from "@/lib/hospital/store";
-import { pretty, shift, todayISO } from "@/lib/hospital/dates";
-import type { Patient, Room } from "@/lib/hospital/types";
+} from "@/frontend/components/ui/select";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { pretty, shift, todayISO } from "@/shared/dates";
+import type { Patient, Room } from "@/shared/types";
 
 const emptyForm = {
   name: "",
@@ -39,7 +39,7 @@ export function AdmissionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { admitPatient, isRoomFree } = useHospital();
+  const { admitPatient, isRoomFree, currentUser, removeRoom } = useHospital();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -57,14 +57,14 @@ export function AdmissionDialog({
       ? !isRoomFree(room.id, form.admissionDate, form.expectedDischargeDate)
       : false;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const age = Number(form.age);
     if (!form.name.trim() || !age || age < 0) {
       toast.error("Enter a valid patient name and age.");
       return;
     }
-    const result = admitPatient({
+    const result = await admitPatient({
       name: form.name,
       age,
       gender: form.gender,
@@ -235,13 +235,35 @@ export function AdmissionDialog({
             </p>
           ) : null}
 
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={conflict}>
-              Confirm admission
-            </Button>
+          <div className="flex justify-between items-center gap-2 sm:col-span-2 mt-2">
+            {currentUser?.role === "admin" ? (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={async () => {
+                   if (confirm(`Are you sure you want to permanently delete Room ${room.number}?`)) {
+                     const res = await removeRoom(room.id);
+                     if (res.ok) {
+                       toast.success(res.message);
+                       onOpenChange(false);
+                     } else {
+                       toast.error(res.message);
+                     }
+                   }
+                }}
+              >
+                Delete Room
+              </Button>
+            ) : <div></div>}
+            
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={conflict}>
+                Confirm admission
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
