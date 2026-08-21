@@ -46,9 +46,10 @@ const maintenanceRooms: Record<string, string> = {
 };
 
 for (const room of seedRooms) {
-  if (maintenanceRooms[room.id]) {
+  const note = maintenanceRooms[room.id];
+  if (note) {
     room.maintenance = true;
-    room.maintenanceNote = maintenanceRooms[room.id];
+    room.maintenanceNote = note;
   }
 }
 
