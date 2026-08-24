@@ -45,8 +45,8 @@ export function RoomBoard() {
   }, [rooms, query, statusFilter, roomStatus]);
 
   const handleSelect = (room: Room) => {
-    if (roomStatus(room.id) === "available") setAdmitRoom(room);
-    else setDetailsRoom(room);
+    if (roomStatus(room.id) === "maintenance") return; // maintenance rooms are not clickable
+    setDetailsRoom(room);
   };
 
   return (

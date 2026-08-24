@@ -19,13 +19,13 @@ export class HospitalRepository {
         await db.collection("bookings").insertMany(initial.bookings);
       }
       
-      // Seed default users
-      const defaultUsers: User[] = [
-        { id: "usr-admin", username: "admin", email: "admin@unani.com", role: "admin", password: "admin" },
-        { id: "usr-recep", username: "receptionist", email: "receptionist@unani.com", role: "receptionist", password: "receptionist" }
-      ];
-      await db.collection("users").insertMany(defaultUsers);
-      console.log("MongoDB seeding complete.");
+      // // Seed default users
+      // const defaultUsers: User[] = [
+      //   { id: "usr-admin", username: "admin", email: "admin@unani.com", role: "admin", password: "admin" },
+      //   { id: "usr-recep", username: "receptionist", email: "receptionist@unani.com", role: "receptionist", password: "unani123" }
+      // ];
+      // await db.collection("users").insertMany(defaultUsers);
+      // console.log("MongoDB seeding complete.");
     }
   }
 
@@ -78,5 +78,13 @@ export class HospitalRepository {
         }
       }
     );
+  }
+
+  static async updateBooking(db: Db, bookingId: string, patch: Partial<Booking>) {
+    await db.collection("bookings").updateOne({ id: bookingId }, { $set: patch });
+  }
+
+  static async updatePatient(db: Db, patientId: string, patch: Partial<Patient>) {
+    await db.collection("patients").updateOne({ id: patientId }, { $set: patch });
   }
 }

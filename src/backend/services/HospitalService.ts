@@ -85,4 +85,21 @@ export class HospitalService {
       return { ok: false, error: (err as Error).message };
     }
   }
+
+  static async updateReservation(
+    bookingId: string,
+    bookingPatch: Partial<Booking>,
+    patientId: string,
+    patientPatch: Partial<Patient>
+  ) {
+    const { db, isConnected } = await connectToDatabase();
+    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+    try {
+      await HospitalRepository.updateBooking(db, bookingId, bookingPatch);
+      await HospitalRepository.updatePatient(db, patientId, patientPatch);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  }
 }

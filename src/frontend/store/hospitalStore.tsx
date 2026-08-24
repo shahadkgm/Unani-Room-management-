@@ -20,6 +20,7 @@ import {
   getUsersServer,
   registerUserServer,
   authenticateUserServer,
+  updateReservationServer,
 } from "@/frontend/api";
 
 const STORAGE_KEY = "unani-hms-state-v1";
@@ -63,6 +64,13 @@ interface HospitalContextValue extends HospitalState {
   isRoomFree: (roomId: string, start: string, end: string, ignoreBookingId?: string) => boolean;
   admitPatient: (input: AdmissionInput) => Promise<{ ok: boolean; message: string }>;
   dischargePatient: (bookingId: string, actualDischargeDate: string) => Promise<void>;
+  updateReservation: (
+    bookingId: string,
+    newAdmissionDate: string,
+    newDischargeDate: string,
+    patientPatch: Partial<Patient>,
+    notes?: string
+  ) => Promise<{ ok: boolean; message: string }>;
   toggleMaintenance: (roomId: string, note?: string) => Promise<void>;
   addRoom: (roomInput: Omit<Room, "id">) => Promise<{ ok: boolean; message: string }>;
   removeRoom: (roomId: string) => Promise<{ ok: boolean; message: string }>;
@@ -352,8 +360,14 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
         (b) =>
           b.roomId === roomId &&
           b.id !== ignoreBookingId &&
-          b.status !== "discharged" &&
-          rangesOverlap(start, end, b.admissionDate, b.expectedDischargeDate),
+          (b.status !== "discharged"
+            ? rangesOverlap(start, end, b.admissionDate, b.expectedDischargeDate)
+            : rangesOverlap(
+                start,
+                end,
+                b.admissionDate,
+                b.actualDischargeDate || b.expectedDischargeDate,
+              )),
       );
 
     const admitPatient = async (input: AdmissionInput) => {
@@ -432,6 +446,64 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
       }));
     };
 
+    const updateReservation = async (
+      bookingId: string,
+      newAdmissionDate: string,
+      newDischargeDate: string,
+      patientPatch: Partial<Patient>,
+      notes?: string
+    ): Promise<{ ok: boolean; message: string }> => {
+      const booking = state.bookings.find((b) => b.id === bookingId);
+      if (!booking) return { ok: false, message: "Booking not found." };
+
+      if (newDischargeDate <= newAdmissionDate)
+        return { ok: false, message: "Discharge date must be after admission date." };
+
+      if (!isRoomFree(booking.roomId, newAdmissionDate, newDischargeDate, bookingId))
+        return { ok: false, message: "These dates overlap with another booking for this room." };
+
+      const room = roomById(booking.roomId);
+      const newStatus: Booking["status"] =
+        booking.status === "discharged"
+          ? "discharged"
+          : newAdmissionDate > todayISO()
+          ? "reserved"
+          : "active";
+
+      const bookingPatch: Partial<Booking> = {
+        admissionDate: newAdmissionDate,
+        expectedDischargeDate: newDischargeDate,
+        status: newStatus,
+        ...(notes !== undefined ? { notes } : {}),
+      };
+
+      // 1. Try Server
+      try {
+        const res = await updateReservationServer({
+          data: { bookingId, bookingPatch, patientId: booking.patientId, patientPatch },
+        });
+        if (res.ok) setDbConnected(true);
+      } catch (err) {
+        console.warn("Server updateReservation failed, running local fallback:", err);
+      }
+
+      // 2. Update local state
+      setState((prev) => ({
+        ...prev,
+        bookings: prev.bookings.map((b) =>
+          b.id === bookingId ? { ...b, ...bookingPatch } : b
+        ),
+        patients: prev.patients.map((p) =>
+          p.id === booking.patientId ? { ...p, ...patientPatch } : p
+        ),
+      }));
+
+      return {
+        ok: true,
+        message: `Reservation updated${room ? ` for Room ${room.number}` : ""}.`,
+      };
+    };
+
     const toggleMaintenance = async (roomId: string, note?: string) => {
       const room = roomById(roomId);
       if (!room) return;
@@ -485,6 +557,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
       isRoomFree,
       admitPatient,
       dischargePatient,
+      updateReservation,
       toggleMaintenance,
       addRoom,
       removeRoom,

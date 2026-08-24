@@ -29,9 +29,11 @@ export function RoomTile({ room, onSelect }: { room: Room; onSelect: (room: Room
     <button
       type="button"
       onClick={() => onSelect(room)}
+      disabled={status === "maintenance"}
       className={cn(
         "group relative flex h-32 w-full flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        status === "maintenance" ? "cursor-default" : "cursor-pointer",
         tileStyles[status],
       )}
     >
@@ -52,7 +54,7 @@ export function RoomTile({ room, onSelect }: { room: Room; onSelect: (room: Room
       <div className="space-y-0.5">
         <p className="truncate text-xs font-semibold text-foreground/80">{room.type}</p>
         {status === "available" ? (
-          <p className="text-[11px] text-muted-foreground">Tap to admit a patient</p>
+          <p className="text-[11px] text-muted-foreground">Tap to book</p>
         ) : status === "maintenance" ? (
           <p className="truncate text-[11px] text-muted-foreground">
             {room.maintenanceNote ?? "Under maintenance"}
@@ -71,3 +73,4 @@ export function RoomTile({ room, onSelect }: { room: Room; onSelect: (room: Room
     </button>
   );
 }
+

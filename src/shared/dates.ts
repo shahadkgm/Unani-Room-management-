@@ -27,7 +27,11 @@ export function daysUntil(dateISO: string): number {
   return differenceInCalendarDays(parseISO(dateISO), today());
 }
 
-/** Inclusive-start, exclusive-end overlap test on ISO date strings. */
+/**
+ * Exclusive-end overlap test on ISO date strings.
+ * The end date is treated as the checkout/departure day (not still occupied).
+ * Back-to-back bookings are allowed: if A ends on the 9th and B starts on the 9th they do NOT overlap.
+ */
 export function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
-  return aStart <= bEnd && bStart <= aEnd;
+  return aStart < bEnd && bStart < aEnd;
 }

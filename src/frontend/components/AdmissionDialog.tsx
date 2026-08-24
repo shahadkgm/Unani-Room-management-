@@ -39,7 +39,7 @@ export function AdmissionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { admitPatient, isRoomFree, currentUser, removeRoom } = useHospital();
+  const { admitPatient, isRoomFree, currentUser, removeRoom, bookingsForRoom, patientById } = useHospital();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -56,6 +56,11 @@ export function AdmissionDialog({
     form.admissionDate && form.expectedDischargeDate
       ? !isRoomFree(room.id, form.admissionDate, form.expectedDischargeDate)
       : false;
+
+  // Existing active/reserved bookings for this room (to show as reference)
+  const existingBookings = bookingsForRoom(room.id)
+    .filter((b) => b.status !== "discharged")
+    .sort((a, b) => a.admissionDate.localeCompare(b.admissionDate));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +232,30 @@ export function AdmissionDialog({
               placeholder="Diet plan, attending hakim, special instructions…"
             />
           </div>
+
+          {/* Show existing bookings for this room as a date guide */}
+          {existingBookings.length > 0 ? (
+            <div className="sm:col-span-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground">Already booked on Room {room.number}:</p>
+              <ul className="space-y-0.5">
+                {existingBookings.map((b) => {
+                  const p = patientById(b.patientId);
+                  return (
+                    <li key={b.id} className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{p?.name ?? "Patient"}</span>
+                      <span className="text-muted-foreground">
+                        {pretty(b.admissionDate)} → {pretty(b.expectedDischargeDate)}
+                        <span className={`ml-1.5 capitalize ${
+                          b.status === "active" ? "text-occupied" : "text-reserved-foreground"
+                        }`}>· {b.status}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-[11px] text-muted-foreground pt-0.5">Choose dates that don't overlap with the above.</p>
+            </div>
+          ) : null}
 
           {conflict ? (
             <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">

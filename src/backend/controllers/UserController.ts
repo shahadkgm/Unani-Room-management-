@@ -16,4 +16,4 @@ export const authenticateUserServer = createServerFn({ method: "POST" })
   .validator((data: { usernameOrEmail: string; password?: string }) => data)
   .handler(async ({ data }) => {
     return await UserService.authenticateUser(data.usernameOrEmail, data.password);
-  });
+  }); 

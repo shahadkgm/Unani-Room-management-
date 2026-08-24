@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import { Pencil, Search } from "lucide-react";
 import { AppShell } from "@/frontend/components/AppShell";
 import { Input } from "@/frontend/components/ui/input";
 import { Button } from "@/frontend/components/ui/button";
@@ -16,9 +16,10 @@ import {
   TableRow,
 } from "@/frontend/components/ui/table";
 import { StatusBadge } from "@/frontend/components/StatusBadge";
+import { EditReservationDialog } from "@/frontend/components/EditReservationDialog";
 import { useHospital } from "@/frontend/store/hospitalStore";
 import { daysUntil, pretty, todayISO } from "@/shared/dates";
-import type { Patient } from "@/shared/types";
+import type { Booking, Patient } from "@/shared/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/patients")({
@@ -45,6 +46,7 @@ function PatientsPage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
   const [dischargeDate, setDischargeDate] = useState(todayISO());
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const t = todayISO();
 
   const rows = useMemo(() => {
@@ -161,16 +163,29 @@ function PatientsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelected(patient);
-                            setDischargeDate(todayISO());
-                          }}
-                        >
-                          View
-                        </Button>
+                        <div className="flex justify-end gap-1.5">
+                          {booking && booking.status !== "discharged" ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={() => setEditingBooking(booking)}
+                            >
+                              <Pencil className="size-3" />
+                              Edit
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelected(patient);
+                              setDischargeDate(todayISO());
+                            }}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -229,9 +244,22 @@ function PatientsPage() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-medium">Room {room?.number}</span>
-                          <span className="text-xs capitalize text-muted-foreground">
-                            {b.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs capitalize text-muted-foreground">
+                              {b.status}
+                            </span>
+                            {b.status !== "discharged" ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 gap-1 px-2 text-xs"
+                                onClick={() => setEditingBooking(b)}
+                              >
+                                <Pencil className="size-3" />
+                                Edit
+                              </Button>
+                            ) : null}
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {pretty(b.admissionDate)} → {pretty(b.expectedDischargeDate)}
@@ -271,6 +299,12 @@ function PatientsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <EditReservationDialog
+        booking={editingBooking}
+        open={!!editingBooking}
+        onOpenChange={(o) => !o && setEditingBooking(null)}
+      />
     </AppShell>
   );
 }

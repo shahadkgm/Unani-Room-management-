@@ -42,11 +42,21 @@ function CalendarPage() {
   const t = todayISO();
 
   const cellFor = (roomId: string, day: string) => {
-    const booking = bookings.find(
-      (b) => b.roomId === roomId && b.admissionDate <= day && day <= b.expectedDischargeDate,
-    );
-    if (!booking) return null;
-    return booking;
+    // 1. Prioritize active or reserved bookings covering this day (checkout day is exclusive)
+    const activeOrReserved = bookings.find((b) => {
+      if (b.roomId !== roomId || b.status === "discharged") return false;
+      const end = b.expectedDischargeDate;
+      return b.admissionDate === end ? day === b.admissionDate : (b.admissionDate <= day && day < end);
+    });
+    if (activeOrReserved) return activeOrReserved;
+
+    // 2. Discharged bookings only cover days up to actualDischargeDate (or expectedDischargeDate if not set)
+    const discharged = bookings.find((b) => {
+      if (b.roomId !== roomId || b.status !== "discharged") return false;
+      const end = b.actualDischargeDate || b.expectedDischargeDate;
+      return b.admissionDate === end ? day === b.admissionDate : (b.admissionDate <= day && day < end);
+    });
+    return discharged || null;
   };
 
   return (

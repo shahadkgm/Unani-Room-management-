@@ -35,3 +35,21 @@ export const toggleMaintenanceServer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     return await HospitalService.toggleMaintenance(data.roomId, data.maintenance, data.note);
   });
+
+export const updateReservationServer = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      bookingId: string;
+      bookingPatch: Partial<Booking>;
+      patientId: string;
+      patientPatch: Partial<Patient>;
+    }) => data
+  )
+  .handler(async ({ data }) => {
+    return await HospitalService.updateReservation(
+      data.bookingId,
+      data.bookingPatch,
+      data.patientId,
+      data.patientPatch
+    );
+  });
