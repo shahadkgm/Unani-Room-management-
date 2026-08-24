@@ -51,16 +51,16 @@ export function RoomBoard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search room number, type or ward"
-            className="w-64"
+            placeholder="Search room, type or ward"
+            className="w-full sm:w-56"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -72,7 +72,7 @@ export function RoomBoard() {
             </SelectContent>
           </Select>
           {currentUser?.role === "admin" && (
-            <Button onClick={() => setAddRoomOpen(true)} className="gap-1.5" size="sm">
+            <Button onClick={() => setAddRoomOpen(true)} className="gap-1.5 w-full sm:w-auto" size="sm">
               <Plus className="size-4" /> Add Room
             </Button>
           )}

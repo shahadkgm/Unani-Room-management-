@@ -5,7 +5,6 @@ import {
   CalendarClock,
   CalendarPlus,
   Pencil,
-  Phone,
   User,
   Wrench,
   Trash,
@@ -57,7 +56,6 @@ export function RoomDetailsDialog({
     .sort((a, b) => a.admissionDate.localeCompare(b.admissionDate));
 
   const activeAndUpcoming = allBookings.filter((b) => b.status !== "discharged");
-  const history = allBookings.filter((b) => b.status === "discharged");
 
   const currentRemaining = current ? daysUntil(current.expectedDischargeDate) : 0;
 
@@ -73,8 +71,7 @@ export function RoomDetailsDialog({
           </DialogHeader>
 
           <p className="text-sm text-muted-foreground">
-            {room.type} · {room.ward} · Floor {room.floor} · {room.beds} bed(s) · ₹
-            {room.ratePerDay.toLocaleString("en-IN")}/day
+            {room.type} · {room.ward} · Floor {room.floor} · {room.beds} bed(s)
           </p>
 
           {/* Maintenance notice */}
@@ -158,23 +155,6 @@ export function RoomDetailsDialog({
                           <dt className="text-muted-foreground">Expected discharge</dt>
                           <dd className="font-medium">{pretty(b.expectedDischargeDate)}</dd>
                         </div>
-                        {p?.phone ? (
-                          <div>
-                            <dt className="text-muted-foreground">Contact</dt>
-                            <dd className="flex items-center gap-1 font-medium">
-                              <Phone className="size-3 text-muted-foreground" />
-                              {p.phone}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {p?.guardianName ? (
-                          <div>
-                            <dt className="text-muted-foreground">Guardian</dt>
-                            <dd className="font-medium">
-                              {p.guardianName} · {p.guardianPhone}
-                            </dd>
-                          </div>
-                        ) : null}
                         {p?.address ? (
                           <div className="sm:col-span-2">
                             <dt className="text-muted-foreground">Address</dt>
@@ -258,32 +238,6 @@ export function RoomDetailsDialog({
                 <CalendarPlus className="size-3.5" />
                 Book this room
               </Button>
-            </div>
-          ) : null}
-
-          {/* ── Booking History ── */}
-          {history.length ? (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                History ({history.length})
-              </h3>
-              <ul className="space-y-2">
-                {history.map((b) => {
-                  const p = patientById(b.patientId);
-                  return (
-                    <li
-                      key={b.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs"
-                    >
-                      <span className="font-medium">{p?.name ?? "Unknown patient"}</span>
-                      <span className="text-muted-foreground">
-                        {pretty(b.admissionDate)} →{" "}
-                        {pretty(b.actualDischargeDate ?? b.expectedDischargeDate)} · discharged
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
             </div>
           ) : null}
 

@@ -34,10 +34,7 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
     name: "",
     age: "",
     gender: "Female" as Patient["gender"],
-    phone: "",
     address: "",
-    guardianName: "",
-    guardianPhone: "",
     ailment: "",
     admissionDate: "",
     expectedDischargeDate: "",
@@ -51,10 +48,7 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
         name: patient.name,
         age: String(patient.age),
         gender: patient.gender,
-        phone: patient.phone,
         address: patient.address,
-        guardianName: patient.guardianName,
-        guardianPhone: patient.guardianPhone,
         ailment: patient.ailment ?? "",
         admissionDate: booking.admissionDate,
         expectedDischargeDate: booking.expectedDischargeDate,
@@ -92,10 +86,7 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
       name: form.name.trim(),
       age,
       gender: form.gender,
-      phone: form.phone.trim(),
       address: form.address.trim(),
-      guardianName: form.guardianName.trim(),
-      guardianPhone: form.guardianPhone.trim(),
     };
     if (form.ailment.trim()) {
       patientPatch.ailment = form.ailment.trim();
@@ -125,7 +116,7 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
             <Pencil className="size-4 text-primary" />
             Edit Reservation — Room {room.number}
             <span className="ml-1 text-sm font-normal text-muted-foreground">
-              {room.type} · {room.ward} · ₹{room.ratePerDay.toLocaleString("en-IN")}/day
+              {room.type} · {room.ward}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -192,18 +183,7 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-phone">Phone number</Label>
-            <Input
-              id="edit-phone"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+91 …"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="edit-ailment">Condition / treatment</Label>
             <Input
               id="edit-ailment"
@@ -224,32 +204,12 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-guardian">Guardian name</Label>
-            <Input
-              id="edit-guardian"
-              value={form.guardianName}
-              onChange={(e) => set("guardianName", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-guardian-phone">Guardian phone</Label>
-            <Input
-              id="edit-guardian-phone"
-              value={form.guardianPhone}
-              onChange={(e) => set("guardianPhone", e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Dates section */}
-          <div className="sm:col-span-2 mt-2">
+          {/* Reservation dates section */}
+          <div className="sm:col-span-2 pt-2">
             <div className="flex items-center gap-2 pb-2">
               <CalendarClock className="size-3.5 text-muted-foreground" />
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Booking Dates
+                Stay Dates
               </span>
             </div>
             <Separator />
@@ -284,18 +244,19 @@ export function EditReservationDialog({ booking, open, onOpenChange }: EditReser
               rows={2}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Diet plan, attending hakim, special instructions…"
+              placeholder="Treatment details, special instructions…"
             />
           </div>
 
-          {/* Validation errors */}
           {dateOrderError ? (
             <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
-              Discharge date must be after admission date.
+              Discharge date must be after the admission date.
             </p>
-          ) : conflict ? (
+          ) : null}
+
+          {conflict ? (
             <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
-              Room {room.number} already has another booking during these dates. Choose different dates.
+              Room {room.number} already has another booking during these dates. Pick different dates.
             </p>
           ) : null}
 

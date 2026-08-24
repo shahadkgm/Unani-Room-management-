@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/backend/db";
 import { HospitalRepository } from "../repositories/HospitalRepository";
 import type { Room, Patient, Booking } from "@/shared/types";
+import { pruneState } from "@/frontend/store/hospitalStore";
 
 export class HospitalService {
   static async getState() {
@@ -15,13 +16,15 @@ export class HospitalService {
 
       const sanitize = (arr: any[]) => arr.map(({ _id, ...rest }) => rest);
 
+      const rawState = {
+        rooms: sanitize(rooms) as Room[],
+        patients: sanitize(patients) as Patient[],
+        bookings: sanitize(bookings) as Booking[],
+      };
+
       return {
         ok: true,
-        state: {
-          rooms: sanitize(rooms) as Room[],
-          patients: sanitize(patients) as Patient[],
-          bookings: sanitize(bookings) as Booking[],
-        },
+        state: pruneState(rawState, 10),
       };
     } catch (err) {
       console.error("Failed to fetch state from MongoDB:", err);

@@ -28,7 +28,6 @@ export function AddRoomDialog({ open, onOpenChange }: AddRoomDialogProps) {
   const [ward, setWard] = useState("");
   const [floor, setFloor] = useState("1");
   const [beds, setBeds] = useState("1");
-  const [rate, setRate] = useState("1000");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +46,6 @@ export function AddRoomDialog({ open, onOpenChange }: AddRoomDialogProps) {
         ward: ward.trim(),
         floor: parseInt(floor, 10) || 1,
         beds: parseInt(beds, 10) || 1,
-        ratePerDay: parseFloat(rate) || 1000,
       });
 
       if (res.ok) {
@@ -57,7 +55,6 @@ export function AddRoomDialog({ open, onOpenChange }: AddRoomDialogProps) {
         setWard("");
         setFloor("1");
         setBeds("1");
-        setRate("1000");
         onOpenChange(false);
       } else {
         toast.error(res.message);
@@ -133,29 +130,15 @@ export function AddRoomDialog({ open, onOpenChange }: AddRoomDialogProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="room-beds">Beds count</Label>
-              <Input
-                id="room-beds"
-                type="number"
-                min="1"
-                value={beds}
-                onChange={(e) => setBeds(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="room-rate">Rate per Day (₹) *</Label>
-              <Input
-                id="room-rate"
-                type="number"
-                min="0"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                required
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="room-beds">Beds count</Label>
+            <Input
+              id="room-beds"
+              type="number"
+              min="1"
+              value={beds}
+              onChange={(e) => setBeds(e.target.value)}
+            />
           </div>
 
           <DialogFooter className="pt-4 gap-2 sm:gap-0">

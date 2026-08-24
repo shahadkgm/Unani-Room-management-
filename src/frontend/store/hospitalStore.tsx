@@ -27,14 +27,36 @@ const STORAGE_KEY = "unani-hms-state-v1";
 const USERS_STORAGE_KEY = "unani-hms-users-v1";
 const CURRENT_USER_KEY = "unani-hms-current-user-v1";
 
+export function pruneState(state: HospitalState, maxPatients = 10): HospitalState {
+  const validBookings = (state.bookings || []).filter((b) => b.status !== "discharged");
+  const activePatientIds = new Set(validBookings.map((b) => b.patientId));
+
+  const activePatients: Patient[] = [];
+  const unadmittedPatients: Patient[] = [];
+
+  for (const p of state.patients || []) {
+    if (activePatientIds.has(p.id)) {
+      activePatients.push(p);
+    } else {
+      unadmittedPatients.push(p);
+    }
+  }
+
+  const allowedUnadmitted = Math.max(0, maxPatients - activePatients.length);
+  const keptUnadmitted = unadmittedPatients.slice(-allowedUnadmitted);
+
+  return {
+    ...state,
+    patients: [...activePatients, ...keptUnadmitted],
+    bookings: validBookings,
+  };
+}
+
 export interface AdmissionInput {
   name: string;
   age: number;
   gender: Patient["gender"];
-  phone: string;
   address: string;
-  guardianName: string;
-  guardianPhone: string;
   ailment?: string;
   roomId: string;
   admissionDate: string;
@@ -125,7 +147,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
       try {
         const response = await getHospitalState();
         if (response.ok && response.state) {
-          setState(response.state);
+          setState(pruneState(response.state, 10));
           setDbConnected(true);
           
           const usersResponse = await getUsersServer();
@@ -144,7 +166,9 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
         const rawState = localStorage.getItem(STORAGE_KEY);
         if (rawState) {
           const parsedState = JSON.parse(rawState) as HospitalState;
-          if (parsedState.rooms?.length) setState(parsedState);
+          if (parsedState.rooms?.length) {
+            setState(pruneState(parsedState, 10));
+          }
         }
 
         const rawUsers = localStorage.getItem(USERS_STORAGE_KEY);
@@ -387,10 +411,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
         name: input.name.trim(),
         age: input.age,
         gender: input.gender,
-        phone: input.phone.trim(),
         address: input.address.trim(),
-        guardianName: input.guardianName.trim(),
-        guardianPhone: input.guardianPhone.trim(),
         ...(input.ailment?.trim() ? { ailment: input.ailment.trim() } : {}),
       };
 
@@ -413,11 +434,16 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
       }
 
       // 2. Update local state
-      setState((prev) => ({
-        ...prev,
-        patients: [...prev.patients, patient],
-        bookings: [...prev.bookings, booking],
-      }));
+      setState((prev) =>
+        pruneState(
+          {
+            ...prev,
+            patients: [...prev.patients, patient],
+            bookings: [...prev.bookings, booking],
+          },
+          10,
+        ),
+      );
 
       return {
         ok: true,
@@ -437,13 +463,16 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
         console.warn("Server discharge failed, running local fallback:", err);
       }
 
-      // 2. Update local state
-      setState((prev) => ({
-        ...prev,
-        bookings: prev.bookings.map((b) =>
-          b.id === bookingId ? { ...b, status: "discharged", actualDischargeDate: date } : b,
+      // 2. Update local state - remove discharged booking and prune patients
+      setState((prev) =>
+        pruneState(
+          {
+            ...prev,
+            bookings: prev.bookings.filter((b) => b.id !== bookingId),
+          },
+          10,
         ),
-      }));
+      );
     };
 
     const updateReservation = async (

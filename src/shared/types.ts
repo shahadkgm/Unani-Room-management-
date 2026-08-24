@@ -11,7 +11,6 @@ export interface Room {
   floor: number;
   ward: string;
   beds: number;
-  ratePerDay: number;
   maintenance?: boolean;
   maintenanceNote?: string;
 }
@@ -21,10 +20,7 @@ export interface Patient {
   name: string;
   age: number;
   gender: "Male" | "Female" | "Other";
-  phone: string;
   address: string;
-  guardianName: string;
-  guardianPhone: string;
   ailment?: string;
 }
 

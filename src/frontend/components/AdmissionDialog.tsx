@@ -20,10 +20,7 @@ const emptyForm = {
   name: "",
   age: "",
   gender: "Female" as Patient["gender"],
-  phone: "",
   address: "",
-  guardianName: "",
-  guardianPhone: "",
   ailment: "",
   admissionDate: "",
   expectedDischargeDate: "",
@@ -73,10 +70,7 @@ export function AdmissionDialog({
       name: form.name,
       age,
       gender: form.gender,
-      phone: form.phone,
       address: form.address,
-      guardianName: form.guardianName,
-      guardianPhone: form.guardianPhone,
       ailment: form.ailment,
       roomId: room.id,
       admissionDate: form.admissionDate,
@@ -98,7 +92,7 @@ export function AdmissionDialog({
           <DialogTitle>
             Admit patient — Room {room.number}
             <span className="ml-2 text-sm font-normal text-muted-foreground">
-              {room.type} · {room.ward} · ₹{room.ratePerDay.toLocaleString("en-IN")}/day
+              {room.type} · {room.ward}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -145,18 +139,7 @@ export function AdmissionDialog({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone number</Label>
-            <Input
-              id="phone"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+91 …"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="ailment">Condition / treatment</Label>
             <Input
               id="ailment"
@@ -173,26 +156,6 @@ export function AdmissionDialog({
               rows={2}
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="guardian">Guardian name</Label>
-            <Input
-              id="guardian"
-              value={form.guardianName}
-              onChange={(e) => set("guardianName", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="guardianPhone">Guardian phone</Label>
-            <Input
-              id="guardianPhone"
-              value={form.guardianPhone}
-              onChange={(e) => set("guardianPhone", e.target.value)}
               required
             />
           </div>
