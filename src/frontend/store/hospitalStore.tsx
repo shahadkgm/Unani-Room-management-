@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Booking, HospitalState, Patient, Role, Room, User } from "@/shared/types";
-import { seedState } from "@/backend/seed";
+
 import { daysUntil, rangesOverlap, todayISO } from "@/shared/dates";
 import {
   getHospitalState,
@@ -112,7 +112,7 @@ const seedUsers: User[] = [
 ];
 
 export function HospitalProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<HospitalState>(() => seedState());
+  const [state, setState] = useState<HospitalState>({ rooms: [], patients: [], bookings: [] });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(seedUsers);
   const [role, setRoleState] = useState<Role>("receptionist");
@@ -591,8 +591,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
       addRoom,
       removeRoom,
       resetData: () => {
-        // Seeding database not handled directly locally for safety, resets local state
-        setState(seedState());
+        setState({ rooms: [], patients: [], bookings: [] });
       },
     };
   }, [state, role, currentUser, users, hydrated, dbConnected]);
