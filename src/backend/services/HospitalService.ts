@@ -1,25 +1,20 @@
-import { connectToDatabase } from "@/backend/db";
-import { HospitalRepository } from "../repositories/HospitalRepository";
 import type { Room, Patient, Booking } from "@/shared/types";
 import { pruneState } from "@/frontend/store/hospitalStore";
+import type { IHospitalRepository } from "../repositories/IHospitalRepository";
 
 export class HospitalService {
-  static async getState() {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline", state: null };
+  constructor(private repo: IHospitalRepository) {}
 
+  async getState() {
     try {
-      await HospitalRepository.seedMongoDBIfEmpty(db);
-      const rooms = await HospitalRepository.getRooms(db);
-      const patients = await HospitalRepository.getPatients(db);
-      const bookings = await HospitalRepository.getBookings(db);
-
-      const sanitize = (arr: any[]) => arr.map(({ _id, ...rest }) => rest);
+      const rooms = await this.repo.getRooms();
+      const patients = await this.repo.getPatients();
+      const bookings = await this.repo.getBookings();
 
       const rawState = {
-        rooms: sanitize(rooms) as Room[],
-        patients: sanitize(patients) as Patient[],
-        bookings: sanitize(bookings) as Booking[],
+        rooms,
+        patients,
+        bookings,
       };
 
       return {
@@ -27,79 +22,67 @@ export class HospitalService {
         state: pruneState(rawState, 10),
       };
     } catch (err) {
-      console.error("Failed to fetch state from MongoDB:", err);
+      console.error("Failed to fetch state from Database:", err);
       return { ok: false, error: (err as Error).message, state: null };
     }
   }
 
-  static async addRoom(room: Room) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+  async addRoom(room: Room) {
     try {
-      await HospitalRepository.insertRoom(db, room);
+      await this.repo.insertRoom(room);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
     }
   }
 
-  static async removeRoom(roomId: string) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+  async removeRoom(roomId: string) {
     try {
-      await HospitalRepository.deleteRoom(db, roomId);
-      await HospitalRepository.deleteBookingsByRoom(db, roomId);
+      await this.repo.deleteRoom(roomId);
+      await this.repo.deleteBookingsByRoom(roomId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
     }
   }
 
-  static async admitPatient(patient: Patient, booking: Booking) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+  async admitPatient(patient: Patient, booking: Booking) {
     try {
-      await HospitalRepository.insertPatient(db, patient);
-      await HospitalRepository.insertBooking(db, booking);
+      await this.repo.insertPatient(patient);
+      await this.repo.insertBooking(booking);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
     }
   }
 
-  static async dischargePatient(bookingId: string, actualDischargeDate: string) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+  async dischargePatient(bookingId: string, actualDischargeDate: string) {
     try {
-      await HospitalRepository.updateBookingDischarge(db, bookingId, actualDischargeDate);
+      await this.repo.updateBookingDischarge(bookingId, actualDischargeDate);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
     }
   }
 
-  static async toggleMaintenance(roomId: string, maintenance: boolean, note?: string) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
+  async toggleMaintenance(roomId: string, maintenance: boolean, note?: string) {
     try {
-      await HospitalRepository.updateRoomMaintenance(db, roomId, maintenance, note);
+      await this.repo.updateRoomMaintenance(roomId, maintenance, note);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
     }
   }
 
-  static async updateReservation(
+  async updateReservation(
     bookingId: string,
     bookingPatch: Partial<Booking>,
     patientId: string,
     patientPatch: Partial<Patient>
   ) {
-    const { db, isConnected } = await connectToDatabase();
-    if (!isConnected || !db) return { ok: false, error: "Database offline" };
     try {
-      await HospitalRepository.updateBooking(db, bookingId, bookingPatch);
-      await HospitalRepository.updatePatient(db, patientId, patientPatch);
+      await this.repo.updateBooking(bookingId, bookingPatch);
+      await this.repo.updatePatient(patientId, patientPatch);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: (err as Error).message };
