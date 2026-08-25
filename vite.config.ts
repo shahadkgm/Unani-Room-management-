@@ -19,12 +19,22 @@ export default defineConfig({
       },
       server: { entry: "server" },
     }),
-    nitro(),
+    nitro({
+      preset: "cloudflare-pages",
+    }),
     viteReact(),
   ],
   resolve: {
     alias: {
       "punycode/": "punycode",
+    },
+  },
+  ssr: {
+    noExternal: true,
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
     },
   },
 });
