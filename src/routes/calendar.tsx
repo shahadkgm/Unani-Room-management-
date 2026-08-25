@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
-import { StatusLegend } from "@/components/StatusBadge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useHospital } from "@/lib/hospital/store";
-import { iso, pretty, today, todayISO } from "@/lib/hospital/dates";
+import { AppShell } from "@/frontend/components/AppShell";
+import { Button } from "@/frontend/components/ui/button";
+import { StatusLegend } from "@/frontend/components/StatusBadge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/frontend/components/ui/tooltip";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { iso, pretty, today, todayISO } from "@/shared/dates";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({
@@ -42,11 +42,21 @@ function CalendarPage() {
   const t = todayISO();
 
   const cellFor = (roomId: string, day: string) => {
-    const booking = bookings.find(
-      (b) => b.roomId === roomId && b.admissionDate <= day && day <= b.expectedDischargeDate,
-    );
-    if (!booking) return null;
-    return booking;
+    // 1. Prioritize active or reserved bookings covering this day (checkout day is exclusive)
+    const activeOrReserved = bookings.find((b) => {
+      if (b.roomId !== roomId || b.status === "discharged") return false;
+      const end = b.expectedDischargeDate;
+      return b.admissionDate === end ? day === b.admissionDate : (b.admissionDate <= day && day < end);
+    });
+    if (activeOrReserved) return activeOrReserved;
+
+    // 2. Discharged bookings only cover days up to actualDischargeDate (or expectedDischargeDate if not set)
+    const discharged = bookings.find((b) => {
+      if (b.roomId !== roomId || b.status !== "discharged") return false;
+      const end = b.actualDischargeDate || b.expectedDischargeDate;
+      return b.admissionDate === end ? day === b.admissionDate : (b.admissionDate <= day && day < end);
+    });
+    return discharged || null;
   };
 
   return (

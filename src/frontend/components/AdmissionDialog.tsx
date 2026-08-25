@@ -1,0 +1,264 @@
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog";
+import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
+import { Label } from "@/frontend/components/ui/label";
+import { Textarea } from "@/frontend/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/frontend/components/ui/select";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { pretty, shift, todayISO } from "@/shared/dates";
+import type { Patient, Room } from "@/shared/types";
+
+const emptyForm = {
+  name: "",
+  age: "",
+  gender: "Female" as Patient["gender"],
+  address: "",
+  ailment: "",
+  admissionDate: "",
+  expectedDischargeDate: "",
+  notes: "",
+};
+
+export function AdmissionDialog({
+  room,
+  open,
+  onOpenChange,
+}: {
+  room: Room | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { admitPatient, isRoomFree, currentUser, removeRoom, bookingsForRoom, patientById } = useHospital();
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    if (open)
+      setForm({ ...emptyForm, admissionDate: todayISO(), expectedDischargeDate: shift(28) });
+  }, [open]);
+
+  if (!room) return null;
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  const conflict =
+    form.admissionDate && form.expectedDischargeDate
+      ? !isRoomFree(room.id, form.admissionDate, form.expectedDischargeDate)
+      : false;
+
+  // Existing active/reserved bookings for this room (to show as reference)
+  const existingBookings = bookingsForRoom(room.id)
+    .filter((b) => b.status !== "discharged")
+    .sort((a, b) => a.admissionDate.localeCompare(b.admissionDate));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const age = Number(form.age);
+    if (!form.name.trim() || !age || age < 0) {
+      toast.error("Enter a valid patient name and age.");
+      return;
+    }
+    const result = await admitPatient({
+      name: form.name,
+      age,
+      gender: form.gender,
+      address: form.address,
+      ailment: form.ailment,
+      roomId: room.id,
+      admissionDate: form.admissionDate,
+      expectedDischargeDate: form.expectedDischargeDate,
+      notes: form.notes,
+    });
+    if (result.ok) {
+      toast.success(result.message);
+      onOpenChange(false);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            Admit patient — Room {room.number}
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {room.type} · {room.ward}
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="name">Patient name</Label>
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="Full name"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="age">Age</Label>
+            <Input
+              id="age"
+              type="number"
+              min={0}
+              max={120}
+              value={form.age}
+              onChange={(e) => set("age", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Gender</Label>
+            <Select
+              value={form.gender}
+              onValueChange={(v) => set("gender", v as Patient["gender"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Female">Female</SelectItem>
+                <SelectItem value="Male">Male</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="ailment">Condition / treatment</Label>
+            <Input
+              id="ailment"
+              value={form.ailment}
+              onChange={(e) => set("ailment", e.target.value)}
+              placeholder="e.g. Waja-ul-Mafasil therapy"
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              rows={2}
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="admission">Admission date</Label>
+            <Input
+              id="admission"
+              type="date"
+              value={form.admissionDate}
+              onChange={(e) => set("admissionDate", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="discharge">Expected discharge date</Label>
+            <Input
+              id="discharge"
+              type="date"
+              value={form.expectedDischargeDate}
+              onChange={(e) => set("expectedDischargeDate", e.target.value)}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Standard stay is about one month (defaults to {pretty(shift(28))}).
+            </p>
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              rows={2}
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              placeholder="Diet plan, attending hakim, special instructions…"
+            />
+          </div>
+
+          {/* Show existing bookings for this room as a date guide */}
+          {existingBookings.length > 0 ? (
+            <div className="sm:col-span-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground">Already booked on Room {room.number}:</p>
+              <ul className="space-y-0.5">
+                {existingBookings.map((b) => {
+                  const p = patientById(b.patientId);
+                  return (
+                    <li key={b.id} className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{p?.name ?? "Patient"}</span>
+                      <span className="text-muted-foreground">
+                        {pretty(b.admissionDate)} → {pretty(b.expectedDischargeDate)}
+                        <span className={`ml-1.5 capitalize ${
+                          b.status === "active" ? "text-occupied" : "text-reserved-foreground"
+                        }`}>· {b.status}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-[11px] text-muted-foreground pt-0.5">Choose dates that don't overlap with the above.</p>
+            </div>
+          ) : null}
+
+          {conflict ? (
+            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
+              Room {room.number} is already booked during these dates. Pick different dates or
+              another room.
+            </p>
+          ) : null}
+
+          <div className="flex justify-between items-center gap-2 sm:col-span-2 mt-2">
+            {currentUser?.role === "admin" ? (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={async () => {
+                   if (confirm(`Are you sure you want to permanently delete Room ${room.number}?`)) {
+                     const res = await removeRoom(room.id);
+                     if (res.ok) {
+                       toast.success(res.message);
+                       onOpenChange(false);
+                     } else {
+                       toast.error(res.message);
+                     }
+                   }
+                }}
+              >
+                Delete Room
+              </Button>
+            ) : <div></div>}
+            
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={conflict}>
+                Confirm admission
+              </Button>
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

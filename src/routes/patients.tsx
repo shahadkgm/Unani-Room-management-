@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Pencil, Search } from "lucide-react";
+import { AppShell } from "@/frontend/components/AppShell";
+import { Input } from "@/frontend/components/ui/input";
+import { Button } from "@/frontend/components/ui/button";
+import { Separator } from "@/frontend/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -14,26 +14,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
-import { useHospital } from "@/lib/hospital/store";
-import { daysUntil, pretty, todayISO } from "@/lib/hospital/dates";
-import type { Patient } from "@/lib/hospital/types";
+} from "@/frontend/components/ui/table";
+import { StatusBadge } from "@/frontend/components/StatusBadge";
+import { EditReservationDialog } from "@/frontend/components/EditReservationDialog";
+import { useHospital } from "@/frontend/store/hospitalStore";
+import { daysUntil, pretty, todayISO } from "@/shared/dates";
+import type { Booking, Patient } from "@/shared/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/patients")({
   head: () => ({
     meta: [
-      { title: "Patients — Unani Hospital Room Management" },
+      { title: "Patient Directory — Unani Hospital Room Management" },
       {
         name: "description",
         content:
-          "Search Unani Hospital patients, review admission history, check current room allocation and record discharges.",
+          "Directory of all admitted and past patients with room assignments, expected discharge dates and emergency contacts.",
       },
-      { property: "og:title", content: "Unani Hospital Patient Records" },
+      { property: "og:title", content: "Unani Hospital Patient Directory" },
       {
         property: "og:description",
-        content: "Patient search, admission history and discharge processing.",
+        content: "Search patient records, view active admissions and process discharges.",
       },
     ],
   }),
@@ -45,6 +46,7 @@ function PatientsPage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
   const [dischargeDate, setDischargeDate] = useState(todayISO());
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const t = todayISO();
 
   const rows = useMemo(() => {
@@ -54,8 +56,8 @@ function PatientsPage() {
         (p) =>
           !q ||
           p.name.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          p.guardianName.toLowerCase().includes(q),
+          p.address.toLowerCase().includes(q) ||
+          (p.ailment && p.ailment.toLowerCase().includes(q)),
       )
       .map((p) => {
         const current = bookings.find(
@@ -82,17 +84,77 @@ function PatientsPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by patient, phone or guardian"
+            placeholder="Search by patient name, condition or address"
             className="pl-9"
           />
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
+        {/* Mobile card list (hidden on md+) */}
+        <div className="md:hidden space-y-3">
+          {rows.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No patients match "{query}".
+            </p>
+          ) : (
+            rows.map(({ patient, current, reserved }) => {
+              const booking = current ?? reserved;
+              const room = booking ? roomById(booking.roomId) : undefined;
+              const remaining = booking ? daysUntil(booking.expectedDischargeDate) : null;
+              return (
+                <div
+                  key={patient.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-card space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm">{patient.name}</p>
+                      <p className="text-xs text-muted-foreground">{patient.age} yrs · {patient.gender}</p>
+                      {patient.ailment ? (
+                        <p className="text-xs text-muted-foreground">{patient.ailment}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {room ? (
+                        <StatusBadge status={current ? "occupied" : "reserved"} />
+                      ) : null}
+                    </div>
+                  </div>
+                  {booking ? (
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Room {room?.number}</span>
+                      {" · "}{pretty(booking.admissionDate)} → {pretty(booking.expectedDischargeDate)}
+                      {remaining !== null && (
+                        <span className={cn("ml-1", remaining < 0 ? "text-destructive font-semibold" : "")}>
+                          {remaining < 0 ? ` · Overdue ${Math.abs(remaining)}d` : ` · ${remaining}d left`}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Not currently admitted</p>
+                  )}
+                  <div className="flex gap-2">
+                    {booking && booking.status !== "discharged" ? (
+                      <Button variant="ghost" size="sm" className="gap-1 text-xs h-8" onClick={() => setEditingBooking(booking)}>
+                        <Pencil className="size-3" /> Edit
+                      </Button>
+                    ) : null}
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setSelected(patient); setDischargeDate(todayISO()); }}>
+                      View
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop table (hidden on mobile) */}
+        <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Patient</TableHead>
-                <TableHead>Contact</TableHead>
+                <TableHead>Address</TableHead>
                 <TableHead>Current room</TableHead>
                 <TableHead>Stay</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -102,7 +164,7 @@ function PatientsPage() {
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                    No patients match “{query}”.
+                    No patients match "{query}".
                   </TableCell>
                 </TableRow>
               ) : (
@@ -116,13 +178,11 @@ function PatientsPage() {
                         <p className="font-medium">{patient.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {patient.age} yrs · {patient.gender}
+                          {patient.ailment ? ` · ${patient.ailment}` : ""}
                         </p>
                       </TableCell>
                       <TableCell className="text-sm">
-                        <p>{patient.phone}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {patient.guardianName} (guardian)
-                        </p>
+                        <p className="max-w-[200px] truncate">{patient.address}</p>
                       </TableCell>
                       <TableCell>
                         {room ? (
@@ -161,16 +221,29 @@ function PatientsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelected(patient);
-                            setDischargeDate(todayISO());
-                          }}
-                        >
-                          View
-                        </Button>
+                        <div className="flex justify-end gap-1.5">
+                          {booking && booking.status !== "discharged" ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={() => setEditingBooking(booking)}
+                            >
+                              <Pencil className="size-3" />
+                              Edit
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelected(patient);
+                              setDischargeDate(todayISO());
+                            }}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -196,16 +269,6 @@ function PatientsPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">Phone</dt>
-                  <dd className="font-medium">{selected.phone}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Guardian</dt>
-                  <dd className="font-medium">
-                    {selected.guardianName} · {selected.guardianPhone}
-                  </dd>
-                </div>
-                <div>
                   <dt className="text-xs text-muted-foreground">Condition</dt>
                   <dd className="font-medium">{selected.ailment ?? "—"}</dd>
                 </div>
@@ -217,11 +280,14 @@ function PatientsPage() {
 
               <Separator />
 
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Admission history</h3>
-                <ul className="space-y-2">
-                  {history.map((b) => {
-                    const room = roomById(b.roomId);
+              {history.filter((b) => b.status !== "discharged").length > 0 ? (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Active & Upcoming Bookings</h3>
+                  <ul className="space-y-2">
+                    {history
+                      .filter((b) => b.status !== "discharged")
+                      .map((b) => {
+                        const room = roomById(b.roomId);
                     return (
                       <li
                         key={b.id}
@@ -229,9 +295,22 @@ function PatientsPage() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-medium">Room {room?.number}</span>
-                          <span className="text-xs capitalize text-muted-foreground">
-                            {b.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs capitalize text-muted-foreground">
+                              {b.status}
+                            </span>
+                            {b.status !== "discharged" ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 gap-1 px-2 text-xs"
+                                onClick={() => setEditingBooking(b)}
+                              >
+                                <Pencil className="size-3" />
+                                Edit
+                              </Button>
+                            ) : null}
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {pretty(b.admissionDate)} → {pretty(b.expectedDischargeDate)}
@@ -242,8 +321,9 @@ function PatientsPage() {
                       </li>
                     );
                   })}
-                </ul>
-              </div>
+                  </ul>
+                </div>
+              ) : null}
 
               {activeBooking ? (
                 <div className="rounded-xl border border-border p-4">
@@ -271,6 +351,12 @@ function PatientsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <EditReservationDialog
+        booking={editingBooking}
+        open={!!editingBooking}
+        onOpenChange={(o) => !o && setEditingBooking(null)}
+      />
     </AppShell>
   );
 }
